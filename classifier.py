@@ -1,83 +1,74 @@
 """
-Model construction, training and persistence.
-Keeps train.py free of model-internals so the same factories can be reused
-by evaluate.py or future experiments.
+Model construction, training, prediction, and persistence
+using only a Random Forest classifier.
 """
 
 import json
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
 
 import config
 
 
-def build_random_forest() -> RandomForestClassifier:
+def build_model() -> RandomForestClassifier:
+    """Create a Random Forest classifier."""
     return RandomForestClassifier(**config.RF_PARAMS)
 
 
-def build_svm() -> SVC:
-    return SVC(**config.SVM_PARAMS)
-
-
-def build_model(model_choice: str):
-    if model_choice == "rf":
-        return build_random_forest(), False  # False = no scaler needed
-    elif model_choice == "svm":
-        return build_svm(), True  # True = needs a fitted scaler
-    else:
-        raise ValueError(f"Unknown model_choice: {model_choice}")
-
-
-def train_model(X: np.ndarray, y: np.ndarray, model_choice: str):
+def train_model(X: np.ndarray, y: np.ndarray):
     """
-    Fits the requested model. Returns (fitted_model, fitted_scaler_or_None).
+    Train the Random Forest model.
+
+    Returns:
+        Trained RandomForestClassifier
     """
-    model, needs_scaler = build_model(model_choice)
-    scaler = None
-    X_input = X
-    if needs_scaler:
-        scaler = StandardScaler()
-        X_input = scaler.fit_transform(X)
-    model.fit(X_input, y)
-    return model, scaler
+    model = build_model()
+    model.fit(X, y)
+    return model
 
 
-def save_model(model, scaler, feature_names: list, model_choice: str, path: str = None):
+def save_model(model, feature_names: list, path: str = None):
+    """
+    Save the trained model and feature names.
+    """
     path = path or config.MODEL_PATH
-    bundle = {
-        "model": model,
-        "scaler": scaler,
-        "model_choice": model_choice,
-    }
-    joblib.dump(bundle, path)
+
+    joblib.dump(model, path)
 
     with open(config.FEATURE_NAMES_PATH, "w") as f:
         json.dump(feature_names, f, indent=2)
 
 
 def load_model(path: str = None):
+    """
+    Load the trained Random Forest model.
+    """
     path = path or config.MODEL_PATH
-    bundle = joblib.load(path)
-    return bundle["model"], bundle["scaler"], bundle["model_choice"]
+    return joblib.load(path)
 
 
 def load_feature_names(path: str = None) -> list:
+    """
+    Load saved feature names.
+    """
     path = path or config.FEATURE_NAMES_PATH
+
     with open(path) as f:
         return json.load(f)
 
 
-def predict_proba_screen(model, scaler, X: np.ndarray) -> np.ndarray:
+def predict_proba_screen(model, X: np.ndarray) -> np.ndarray:
     """
-    Returns P(class == screen) for each row in X.
-    Assumes label convention 1 = screen, 0 = real (enforced in train.py).
+    Returns the probability that each image belongs
+    to the 'screen' class.
+
+    Label convention:
+        0 -> real
+        1 -> screen
     """
-    X_input = scaler.transform(X) if scaler is not None else X
-    proba = model.predict_proba(X_input)
-    # locate the column for class label 1
-    classes = list(model.classes_)
-    screen_idx = classes.index(1)
-    return proba[:, screen_idx]
+    probabilities = model.predict_proba(X)
+
+    screen_index = list(model.classes_).index(1)
+
+    return probabilities[:, screen_index]

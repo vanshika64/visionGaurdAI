@@ -1,91 +1,161 @@
 # Real Photo vs. Screen Photo Classifier
 
-Classical computer vision + lightweight ML solution that determines whether
-an input image is a real photo of a real-world object, or a photo of a
-screen (phone/laptop/monitor/tablet) displaying an image.
+A lightweight Computer Vision project that determines whether an input image is:
 
-Output: a single float in [0, 1] -- 0.0 = definitely real, 1.0 = definitely
-a screen.
+- A real photo of a real-world object
+- A photo of a screen (phone, laptop, monitor, or tablet) displaying an image
 
-## Approach
+The model outputs a single probability:
 
-Rather than training a deep CNN (which would badly overfit on a small
-hand-collected dataset and likely learn scene content instead of the true
-screen-detection cue), this project uses handcrafted features that target
-the actual physical artifact of photographing a display: moire patterns
-and frequency-domain anomalies caused by the interaction between a
-camera's sensor grid and a display's sub-pixel grid. These are combined
-with supporting texture, edge, color, and reflection features and fed into
-a Random Forest / RBF SVM classifier (whichever scores better via
-cross-validation, selected automatically by `train.py`).
+- **0.0** → Definitely a real photo
+- **1.0** → Definitely a photo of a screen
 
-See `features.py` for the full feature set: FFT radial-band energy,
-moire peak detection, wavelet sub-band energy, edge density / Hough-line
-bezel detection, LBP texture, gradient orientation peakiness, Laplacian
-variance, color/saturation statistics, brightness distribution, and
-reflection blob detection.
+---
 
-## Setup
+# Approach
+
+Instead of using a deep CNN, this project uses handcrafted Computer Vision features designed to detect artifacts that naturally occur when photographing a display.
+
+The extracted features include:
+
+- FFT Frequency Analysis
+- Moiré Pattern Detection
+- Wavelet Features
+- Edge Density
+- Hough Line Detection
+- Local Binary Pattern (LBP)
+- Gradient Orientation Features
+- Laplacian Variance
+- Color & Saturation Statistics
+- Brightness Distribution
+- Reflection Detection
+
+These features are combined into a feature vector and classified using a **Random Forest Classifier**.
+
+See `features.py` for the complete feature extraction pipeline.
+
+---
+
+# Setup
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Dataset
+---
+
+# Dataset
 
 ```
 dataset/
-    real/      # 50+ real-world photos
-    screen/    # 50+ photos of screens displaying images
+│
+├── real/
+│     image001.jpg
+│     ...
+│     image050.jpg
+│
+└── screen/
+      image001.jpg
+      ...
+      image050.jpg
 ```
 
-See project notes for data collection guidelines (lighting, angle,
-distance, device, and reflection diversity).
+The dataset contains:
 
-## Training
+- 50 real-world photos
+- 50 photos of screens
+
+Images should include different:
+
+- Lighting conditions
+- Camera angles
+- Distances
+- Devices
+- Backgrounds
+- Screen brightness levels
+- Reflections
+
+---
+
+# Training
 
 ```bash
 python train.py
 ```
 
-Trains and evaluates both Random Forest and RBF SVM via a held-out test
-split and 5-fold cross-validation, prints accuracy / precision / recall /
-F1 / ROC-AUC / confusion matrix for each, then saves the better-performing
-model to `models/model.pkl` (retrained on the full dataset).
+The training script:
 
-Force a specific model:
-```bash
-python train.py --model rf
-python train.py --model svm
+- Loads the dataset
+- Extracts handcrafted features
+- Trains a Random Forest classifier
+- Evaluates performance
+- Prints:
+  - Accuracy
+  - Precision
+  - Recall
+  - F1 Score
+  - ROC-AUC
+  - Confusion Matrix
+- Saves the trained model to:
+
+```
+models/model.pkl
 ```
 
-## Prediction
+---
+
+# Prediction
 
 ```bash
-python predict.py path/to/image.jpg
+python predict.py image.jpg
 ```
 
-Prints a single float, e.g.:
+Example output:
+
 ```
 0.872341
 ```
 
-## Project Structure
+---
+
+# Project Structure
 
 | File | Responsibility |
-|---|---|
-| `config.py` | All tunable constants (no logic) |
-| `utils.py` | Generic image I/O and helper functions |
-| `features.py` | All handcrafted feature extraction |
-| `classifier.py` | Model factories, training, persistence |
-| `train.py` | Dataset loading + training orchestration |
-| `evaluate.py` | Metric computation and reporting |
-| `predict.py` | CLI entry point for single-image prediction |
+|------|----------------|
+| `config.py` | Project configuration and constants |
+| `utils.py` | Image loading and helper functions |
+| `features.py` | Handcrafted feature extraction |
+| `classifier.py` | Random Forest training, prediction and model saving |
+| `train.py` | Dataset loading and model training |
+| `evaluate.py` | Performance evaluation |
+| `predict.py` | Predicts whether an image is a real photo or a screen photo |
 
-## Results
+---
 
-_Fill in after running `train.py` on your collected dataset:_
-- Test accuracy:
-- ROC-AUC:
-- CV accuracy (mean ± std):
-- Average prediction latency:
+# Results
+
+Update these after training on your dataset.
+
+- Test Accuracy:0.9500
+- Precision:0.9091
+- Recall:1.0000
+- F1 Score:0.9524
+- ROC-AUC:0.9800
+
+---
+
+# Technologies Used
+
+- Python 3.11
+- OpenCV
+- NumPy
+- scikit-image
+- scikit-learn
+- PyWavelets
+- Joblib
+
+---
+
+# Model
+
+This project uses a **Random Forest Classifier** trained on handcrafted Computer Vision features to distinguish real-world photographs from photos of digital screens.

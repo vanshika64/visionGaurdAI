@@ -1,6 +1,5 @@
 """
-Evaluation metrics, kept separate from train.py so the same reporting logic
-can be reused to re-evaluate a saved model against new data.
+Evaluation metrics for the Random Forest screen-vs-real classifier.
 """
 
 import numpy as np
@@ -16,7 +15,8 @@ from sklearn.metrics import (
 from utils import logger
 
 
-def compute_metrics(y_true, y_pred, y_proba) -> dict:
+def compute_metrics(y_true, y_pred, y_proba):
+    """Compute evaluation metrics."""
     return {
         "accuracy": accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
@@ -27,13 +27,18 @@ def compute_metrics(y_true, y_pred, y_proba) -> dict:
     }
 
 
-def print_report(metrics: dict, title: str = "Evaluation Report"):
+def print_report(metrics, title="Random Forest Evaluation"):
+    """Print evaluation results."""
     logger.info(f"===== {title} =====")
     logger.info(f"Accuracy : {metrics['accuracy']:.4f}")
     logger.info(f"Precision: {metrics['precision']:.4f}")
     logger.info(f"Recall   : {metrics['recall']:.4f}")
     logger.info(f"F1 Score : {metrics['f1']:.4f}")
     logger.info(f"ROC-AUC  : {metrics['roc_auc']:.4f}")
+
     cm = np.array(metrics["confusion_matrix"])
-    logger.info("Confusion Matrix (rows=true [real,screen], cols=pred [real,screen]):")
-    logger.info(f"  {cm.tolist()}")
+
+    logger.info("Confusion Matrix")
+    logger.info("Rows    : Actual class (Real, Screen)")
+    logger.info("Columns : Predicted class (Real, Screen)")
+    logger.info(f"\n{cm}")
